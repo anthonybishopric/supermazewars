@@ -16,26 +16,22 @@ float unitSpace = 300;
 float wallLength = (2 * gridSize + 1) * unitSpace;
 float wallHeight = unitSpace * 1.6;
 
-float cameraSpeed = 15;
-float cameraX = 3 * unitSpace, cameraZ  = 3 * unitSpace, cameraAngle = -HALF_PI, targetCameraAngle = -HALF_PI;
-float camCenterX = 0, camCenterZ = 0;
-
 int[][] upRightDownLeft = [[0,-1],[1,0],[0,1],[-1,0]];
-int directionIndex = 0;
 
-GrowthTurn turn; 
+POV pov;
 
 void setup() {
   size(document.body.clientWidth, document.body.clientHeight, P3D);
   frameRate(50);
   noStroke();
+  pov = new POV();
 }
 
 void draw() {
   background(0);
   frame++;
 
-  moveCamera();
+  pov.moveCamera();
   lights();
 
   for (int x = 0; x < gridSize; x++) {
@@ -70,27 +66,6 @@ void funThings(){
   box(50);
 }
 
-void moveCamera() {
-  float radius = unitSpace;
-
-  if (turn && !turn.doneTurning) {
-    cameraAngle = turn.valueAtNextFrame()
-  }
-
-  float theta = cameraAngle;
-
-  camCenterX = radius * cos(theta) + cameraX;
-  camCenterZ = radius * sin(theta) + cameraZ;
-
-  camera(cameraX, wallHeight, cameraZ, camCenterX, wallHeight, camCenterZ, 0, 1, 0);
-}
-
-void changeDirection(float angle) {
-  
-  turn = new GrowthTurn(cameraAngle, targetCameraAngle + angle)
-  targetCameraAngle = targetCameraAngle + angle
-}
-
 void drawInnerWall(int x, int y) {
   pushMatrix();
   translate((2 * x + 1) * unitSpace, height/2, -(2 * y + 1) * unitSpace);
@@ -113,27 +88,76 @@ void drawOuterWall() {
 void keyPressed() {
   frameMovedAt = frame
   if (key == 'w') {
-    cameraX = cameraX + upRightDownLeft[directionIndex][0] * cameraSpeed
-    cameraZ = cameraZ + upRightDownLeft[directionIndex][1] * cameraSpeed
+    pov.moveForward();
   }
   if (key == 's') {
-    cameraX = cameraX - upRightDownLeft[directionIndex][0] * cameraSpeed
-    cameraZ = cameraZ - upRightDownLeft[directionIndex][1] * cameraSpeed 
+    pov.moveBackward();
   }
   if (key == 'a') {
+    pov.turnLeft();
+  }
+  if (key == 'd') {
+    pov.turnRight();
+  }
+}
+
+class POV {
+  float cameraSpeed = 15;
+  float cameraX = 3 * unitSpace, cameraZ  = 3 * unitSpace, cameraAngle = -HALF_PI, targetCameraAngle = -HALF_PI;
+  float camCenterX = 0, camCenterZ = 0;
+
+  int directionIndex = 0;
+
+  GrowthTurn turn;
+
+  void turnLeft() {
     directionIndex = directionIndex - 1;
     if (directionIndex < 0) {
       directionIndex = 3;
     }
     changeDirection(-HALF_PI);
   }
-  if (key == 'd') {
+
+  void turnRight() {
     directionIndex++;
     if (directionIndex > 3) {
       directionIndex = 0;
     }
     changeDirection(HALF_PI);
   }
+
+  void moveForward() {
+    cameraX = cameraX + upRightDownLeft[directionIndex][0] * cameraSpeed
+    cameraZ = cameraZ + upRightDownLeft[directionIndex][1] * cameraSpeed
+  }
+
+  void moveBackward() {
+    cameraX = cameraX - upRightDownLeft[directionIndex][0] * cameraSpeed
+    cameraZ = cameraZ - upRightDownLeft[directionIndex][1] * cameraSpeed 
+  }
+
+  void changeDirection(float angle) {
+    turn = new GrowthTurn(cameraAngle, targetCameraAngle + angle)
+    targetCameraAngle = targetCameraAngle + angle
+  }
+
+  void moveCamera() {
+    float radius = unitSpace;
+
+    if (turn && !turn.doneTurning) {
+      cameraAngle = turn.valueAtNextFrame()
+    }
+
+    float theta = cameraAngle;
+
+    camCenterX = radius * cos(theta) + cameraX;
+    camCenterZ = radius * sin(theta) + cameraZ;
+
+    camera(cameraX, wallHeight, cameraZ, camCenterX, wallHeight, camCenterZ, 0, 1, 0);
+  }
+
+  
+
 }
 
 class GrowthTurn {
