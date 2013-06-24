@@ -1,0 +1,119 @@
+<html>
+<head>
+<style>
+body {
+	margin: 0px;
+}
+
+</style>
+<script type="text/javascript" src="js/processing.js"></script>
+<script type="application/processing" data-processing-target="canvas1">
+int frame = 0;
+float ang = 0;
+float gridSize = 5; // number of columns along both x and y axes in the grid
+float unitSpace = 300;
+float wallLength = (2 * gridSize + 1) * unitSpace;
+float wallHeight = unitSpace * 1.6;
+
+float cameraSpeed = 15;
+float cameraX = -unitSpace, cameraZ  = -unitSpace, cameraAngle = 0;
+
+void setup() {
+  size(document.body.clientWidth, document.body.clientHeight, P3D);
+  frameRate(50);
+  noStroke();
+}
+
+void draw() {
+  background(0);
+
+  moveCamera();
+  lights();
+
+  for (int x = 0; x < gridSize; x++) {
+    for (int y = 0; y < gridSize; y++) {
+      drawInnerWall(x,y);
+    }
+  }
+
+  drawOuterWall();
+ 
+  // funThings();
+
+}
+
+void funThings(){
+  fill(10, 120, 185);
+  stroke(51, 204, 255);
+  
+  translate(width / 2, height / 2, 100);
+  rotateX(0.4 + ang);
+  rotateY(0.5 + ang);
+  ang = ang + 0.01;
+  box(100);
+
+  
+  rotateZ(0.6 + ang);
+  translate(sin(ang) * 100, 50, 200);
+
+  fill(185, 120, 10);
+  stroke(255, 51, 51);
+
+  box(50);
+}
+
+void moveCamera() {
+  float radius = unitSpace;
+  float theta = cameraAngle;
+
+  float camCenterX = radius * cos(theta) + cameraX;
+  float camCenterZ = radius * sin(theta) + cameraZ;
+
+  camera(cameraX, wallHeight, cameraZ, camCenterX, wallHeight, camCenterZ, 0, 1, 0);
+}
+
+void drawInnerWall(int x, int y) {
+  pushMatrix();
+  translate((2 * x + 1) * unitSpace, height/2, -(2 * y + 1) * unitSpace);
+
+  fill(10, 120, 185);
+  stroke(51, 204, 255);
+  
+  box(unitSpace, wallHeight, unitSpace);
+  popMatrix();
+}
+
+void drawOuterWall() {
+  pushMatrix();
+  translate(-unitSpace, 0, -unitSpace);
+  rotateY(HALF_PI);
+  rect(0, 0, wallLength, wallHeight)
+  popMatrix()
+}
+
+void keyPressed() {
+  if (key == 'w') {
+    cameraZ -= cameraSpeed;
+    cameraAngle = -HALF_PI
+  }
+  if (key == 's') {
+    cameraZ += cameraSpeed;
+    cameraAngle = HALF_PI
+  }
+  if (key == 'a') {
+    cameraX -= cameraSpeed;
+    cameraAngle = -PI
+  }
+  if (key == 'd') {
+    cameraX += cameraSpeed;
+    cameraAngle = 0
+  }
+}
+
+</script>
+</head>
+<body>
+
+<canvas id="canvas1"></canvas>
+</body>
+</html>
