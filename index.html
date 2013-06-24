@@ -16,15 +16,15 @@ float unitSpace = 300;
 float wallLength = (2 * gridSize + 1) * unitSpace;
 float wallHeight = unitSpace * 1.6;
 
-int[][] upRightDownLeft = [[0,-1],[1,0],[0,1],[-1,0]];
-
 POV pov;
+POV ai;
 
 void setup() {
   size(document.body.clientWidth, document.body.clientHeight, P3D);
   frameRate(50);
   noStroke();
-  pov = new POV();
+  pov = new POV( 3 * unitSpace,  3 * unitSpace);
+  ai = new POV(2 * unitSpace, 2 * -unitSpace);
 }
 
 void draw() {
@@ -32,6 +32,7 @@ void draw() {
   frame++;
 
   pov.moveCamera();
+  ai.moveSphere();
   lights();
 
   for (int x = 0; x < gridSize; x++) {
@@ -81,12 +82,12 @@ void drawOuterWall() {
   pushMatrix();
   translate(-unitSpace, 0, -unitSpace);
   rotateY(HALF_PI);
-  rect(0, 0, wallLength, wallHeight)
-  popMatrix()
+  rect(0, 0, wallLength, wallHeight);
+  popMatrix();
 }
 
 void keyPressed() {
-  frameMovedAt = frame
+  frameMovedAt = frame;
   if (key == 'w') {
     pov.moveForward();
   }
@@ -101,14 +102,22 @@ void keyPressed() {
   }
 }
 
+
+int[][] upRightDownLeft = [[0,-1],[1,0],[0,1],[-1,0]];
+
 class POV {
   float cameraSpeed = 15;
-  float cameraX = 3 * unitSpace, cameraZ  = 3 * unitSpace, cameraAngle = -HALF_PI, targetCameraAngle = -HALF_PI;
+  float cameraX = 0, cameraZ  = 0, cameraAngle = -HALF_PI, targetCameraAngle = -HALF_PI;
   float camCenterX = 0, camCenterZ = 0;
 
   int directionIndex = 0;
 
   GrowthTurn turn;
+
+  POV(float x, float z) {
+    cameraX = x;
+    cameraZ = z;
+  }
 
   void turnLeft() {
     directionIndex = directionIndex - 1;
@@ -127,36 +136,62 @@ class POV {
   }
 
   void moveForward() {
-    cameraX = cameraX + upRightDownLeft[directionIndex][0] * cameraSpeed
-    cameraZ = cameraZ + upRightDownLeft[directionIndex][1] * cameraSpeed
+    cameraX = cameraX + upRightDownLeft[directionIndex][0] * cameraSpeed;
+    cameraZ = cameraZ + upRightDownLeft[directionIndex][1] * cameraSpeed;
   }
 
   void moveBackward() {
-    cameraX = cameraX - upRightDownLeft[directionIndex][0] * cameraSpeed
-    cameraZ = cameraZ - upRightDownLeft[directionIndex][1] * cameraSpeed 
+    cameraX = cameraX - upRightDownLeft[directionIndex][0] * cameraSpeed;
+    cameraZ = cameraZ - upRightDownLeft[directionIndex][1] * cameraSpeed;
   }
 
   void changeDirection(float angle) {
-    turn = new GrowthTurn(cameraAngle, targetCameraAngle + angle)
-    targetCameraAngle = targetCameraAngle + angle
+    turn = new GrowthTurn(cameraAngle, targetCameraAngle + angle);
+    targetCameraAngle = targetCameraAngle + angle;
   }
 
-  void moveCamera() {
+  void calculateNewCamCenter() {
     float radius = unitSpace;
 
     if (turn && !turn.doneTurning) {
-      cameraAngle = turn.valueAtNextFrame()
+      cameraAngle = turn.valueAtNextFrame();
     }
 
     float theta = cameraAngle;
 
     camCenterX = radius * cos(theta) + cameraX;
     camCenterZ = radius * sin(theta) + cameraZ;
+  }
+
+  void moveCamera() {
+    calculateNewCamCenter();
 
     camera(cameraX, wallHeight, cameraZ, camCenterX, wallHeight, camCenterZ, 0, 1, 0);
   }
 
-  
+  void moveSphere() {
+
+
+    if (cameraX >= gridSize * unitSpace * 2 - 1 ||
+        cameraZ <= -gridSize * unitSpace * 2 - 1 ||
+        cameraX <= unitSpace ||
+        cameraZ >= unitSpace) {
+      turnLeft();
+    }
+    moveForward();
+    println("Sphere is " + cameraX  + ", " + cameraZ);
+
+    calculateNewCamCenter();
+
+    pushMatrix();
+
+    fill(200, 51, 51);
+    stroke(255, 10, 10);
+    translate(cameraX, wallHeight, cameraZ);
+    sphere(100);
+
+    popMatrix();
+  }
 
 }
 
