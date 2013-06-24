@@ -6,6 +6,7 @@ body {
 }
 
 </style>
+<script type="text/javascript" src="js/jquery.js"></script>
 <script type="text/javascript" src="js/processing.js"></script>
 <script type="application/processing" data-processing-target="canvas1">
 long frame = 0;
@@ -16,11 +17,11 @@ float wallLength = (2 * gridSize + 1) * unitSpace;
 float wallHeight = unitSpace * 1.6;
 
 float cameraSpeed = 15;
-float cameraX = -unitSpace, cameraZ  = -unitSpace, cameraAngle = HALF_PI, targetCameraAngle = HALF_PI;
-float camCenterX =0, camCenterZ = 0;
+float cameraX = 3 * unitSpace, cameraZ  = 3 * unitSpace, cameraAngle = -HALF_PI, targetCameraAngle = -HALF_PI;
+float camCenterX = 0, camCenterZ = 0;
 
 int[][] upRightDownLeft = [[0,-1],[1,0],[0,1],[-1,0]];
-int directionIndex = 2;
+int directionIndex = 0;
 
 GrowthTurn turn; 
 
@@ -157,9 +158,14 @@ class GrowthTurn {
 }
 
 </script>
+<script type="text/javascript">
+$(function() {
+  $("#canvas1").focus()
+});
+</script>
 </head>
 <body>
 
-<canvas id="canvas1"></canvas>
+<canvas id="canvas1" tabindex="1"></canvas>
 </body>
 </html>
