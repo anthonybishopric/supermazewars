@@ -8,7 +8,7 @@ body {
 </style>
 <script type="text/javascript" src="js/processing.js"></script>
 <script type="application/processing" data-processing-target="canvas1">
-int frame = 0;
+long frame = 0;
 float ang = 0;
 float gridSize = 5; // number of columns along both x and y axes in the grid
 float unitSpace = 300;
@@ -16,7 +16,13 @@ float wallLength = (2 * gridSize + 1) * unitSpace;
 float wallHeight = unitSpace * 1.6;
 
 float cameraSpeed = 15;
-float cameraX = -unitSpace, cameraZ  = -unitSpace, cameraAngle = 0;
+float cameraX = -unitSpace, cameraZ  = -unitSpace, cameraAngle = HALF_PI, targetCameraAngle = HALF_PI;
+float camCenterX =0, camCenterZ = 0;
+
+int[][] upRightDownLeft = [[0,-1],[1,0],[0,1],[-1,0]];
+int directionIndex = 2;
+
+GrowthTurn turn; 
 
 void setup() {
   size(document.body.clientWidth, document.body.clientHeight, P3D);
@@ -26,6 +32,7 @@ void setup() {
 
 void draw() {
   background(0);
+  frame++;
 
   moveCamera();
   lights();
@@ -38,7 +45,7 @@ void draw() {
 
   drawOuterWall();
  
-  // funThings();
+  funThings();
 
 }
 
@@ -64,12 +71,23 @@ void funThings(){
 
 void moveCamera() {
   float radius = unitSpace;
+
+  if (turn && !turn.doneTurning) {
+    cameraAngle = turn.valueAtNextFrame()
+  }
+
   float theta = cameraAngle;
 
-  float camCenterX = radius * cos(theta) + cameraX;
-  float camCenterZ = radius * sin(theta) + cameraZ;
+  camCenterX = radius * cos(theta) + cameraX;
+  camCenterZ = radius * sin(theta) + cameraZ;
 
   camera(cameraX, wallHeight, cameraZ, camCenterX, wallHeight, camCenterZ, 0, 1, 0);
+}
+
+void changeDirection(float angle) {
+  
+  turn = new GrowthTurn(cameraAngle, targetCameraAngle + angle)
+  targetCameraAngle = targetCameraAngle + angle
 }
 
 void drawInnerWall(int x, int y) {
@@ -92,21 +110,49 @@ void drawOuterWall() {
 }
 
 void keyPressed() {
+  frameMovedAt = frame
   if (key == 'w') {
-    cameraZ -= cameraSpeed;
-    cameraAngle = -HALF_PI
+    cameraX = cameraX + upRightDownLeft[directionIndex][0] * cameraSpeed
+    cameraZ = cameraZ + upRightDownLeft[directionIndex][1] * cameraSpeed
   }
   if (key == 's') {
-    cameraZ += cameraSpeed;
-    cameraAngle = HALF_PI
+    cameraX = cameraX - upRightDownLeft[directionIndex][0] * cameraSpeed
+    cameraZ = cameraZ - upRightDownLeft[directionIndex][1] * cameraSpeed 
   }
   if (key == 'a') {
-    cameraX -= cameraSpeed;
-    cameraAngle = -PI
+    directionIndex = directionIndex - 1;
+    if (directionIndex < 0) {
+      directionIndex = 3;
+    }
+    changeDirection(-HALF_PI);
   }
   if (key == 'd') {
-    cameraX += cameraSpeed;
-    cameraAngle = 0
+    directionIndex++;
+    if (directionIndex > 3) {
+      directionIndex = 0;
+    }
+    changeDirection(HALF_PI);
+  }
+}
+
+class GrowthTurn {
+
+  float start = 0, end = 0;
+  int frame = 0;
+  boolean doneTurning = false;
+
+  GrowthTurn(float _start, float _end) {
+    start = _start;
+    end = _end;
+  }
+
+  float valueAtNextFrame() {
+    float growth = 1.01 * (frame/2 - 2)/sqrt(pow(frame/2 - 2, 2) + 1);
+    float value = growth * end + ((start+end)/2)*(1-growth);
+    frame++;
+    doneTurning = abs(value - end) < 0.01;
+    return doneTurning ? end : value;
+
   }
 }
 
