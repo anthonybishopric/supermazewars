@@ -11,7 +11,7 @@ body {
 <script type="application/processing" data-processing-target="canvas1">
 long frame = 0;
 float ang = 0;
-float gridSize = 5; // number of columns along both x and y axes in the grid
+float gridSize = 10; // number of columns along both x and y axes in the grid
 float unitSpace = 300;
 float wallLength = (2 * gridSize + 1) * unitSpace;
 float wallHeight = unitSpace * 1.6;
@@ -88,17 +88,14 @@ void drawOuterWall() {
 
 void keyPressed() {
   frameMovedAt = frame;
-  if (key == 'w') {
-    pov.moveForward();
-  }
-  if (key == 's') {
-    pov.moveBackward();
-  }
   if (key == 'a') {
     pov.turnLeft();
   }
   if (key == 'd') {
     pov.turnRight();
+  }
+  if (key == 'w') {
+    pov.setMomentum(40);
   }
 }
 
@@ -106,17 +103,18 @@ void keyPressed() {
 int[][] upRightDownLeft = [[0,-1],[1,0],[0,1],[-1,0]];
 
 class POV {
-  float cameraSpeed = 15;
   float cameraX = 0, cameraZ  = 0, cameraAngle = -HALF_PI, targetCameraAngle = -HALF_PI;
   float camCenterX = 0, camCenterZ = 0;
 
   int directionIndex = 0;
 
   GrowthTurn turn;
+  QuadEaseOut momentumFn;
 
   POV(float x, float z) {
     cameraX = x;
     cameraZ = z;
+    setMomentum(0);
   }
 
   void turnLeft() {
@@ -135,14 +133,33 @@ class POV {
     changeDirection(HALF_PI);
   }
 
+  void setMomentum(float value) {
+    momentumFn = new QuadEaseOut(value, 0, 40);
+  }
+
+  float getMomentum() {
+    return momentumFn.valueAtCurrentFrame()
+  }
+
+  float[] nextLocation() {
+    float momentum = getMomentum();
+    return [
+      cameraX + upRightDownLeft[directionIndex][0] * momentum, 
+      cameraZ + upRightDownLeft[directionIndex][1] * momentum
+    ];
+  }
+
   void moveForward() {
-    cameraX = cameraX + upRightDownLeft[directionIndex][0] * cameraSpeed;
-    cameraZ = cameraZ + upRightDownLeft[directionIndex][1] * cameraSpeed;
+    float[] next = nextLocation();
+    momentumFn.goToNextFrame();
+    cameraX = next[0];
+    cameraZ = next[1];
   }
 
   void moveBackward() {
-    cameraX = cameraX - upRightDownLeft[directionIndex][0] * cameraSpeed;
-    cameraZ = cameraZ - upRightDownLeft[directionIndex][1] * cameraSpeed;
+    float momentum = getMomentum();
+    cameraX = cameraX - upRightDownLeft[directionIndex][0] * momentum;
+    cameraZ = cameraZ - upRightDownLeft[directionIndex][1] * momentum;
   }
 
   void changeDirection(float angle) {
@@ -166,20 +183,28 @@ class POV {
   void moveCamera() {
     calculateNewCamCenter();
 
-    camera(cameraX, wallHeight, cameraZ, camCenterX, wallHeight, camCenterZ, 0, 1, 0);
+    camera(cameraX, wallHeight*1.5, cameraZ, camCenterX, wallHeight*1.5, camCenterZ, 0, 1, 0);
+
+    moveForward();
   }
 
   void moveSphere() {
 
+    float[] next = nextLocation();
 
-    if (cameraX >= gridSize * unitSpace * 2 - 1 ||
-        cameraZ <= -gridSize * unitSpace * 2 - 1 ||
-        cameraX <= unitSpace ||
-        cameraZ >= unitSpace) {
+    float rand = random(10);
+    if (rand < 0.1 && (next[0] % unitSpace < 10 || next[1] % unitSpace < 10))
+    {
       turnLeft();
     }
+    else if (next[0] >= gridSize * unitSpace * 2 - 1 ||
+        next[1] <= -gridSize * unitSpace * 2 - 1 ||
+        next[0] <= unitSpace ||
+        next[1] >= unitSpace) {
+      turnLeft();
+    }
+    setMomentum(40);
     moveForward();
-    println("Sphere is " + cameraX  + ", " + cameraZ);
 
     calculateNewCamCenter();
 
@@ -195,6 +220,12 @@ class POV {
 
 }
 
+/**
+* A slightly shifted sigmoid growth curve. Given a 
+* start point S and an end point E, then each frame F
+* will provide a point along the growth curve. The function
+* will stop growing after ~11 frames. See curves/GrowthTurn.gcx
+*/
 class GrowthTurn {
 
   float start = 0, end = 0;
@@ -213,6 +244,45 @@ class GrowthTurn {
     doneTurning = abs(value - end) < 0.01;
     return doneTurning ? end : value;
 
+  }
+}
+
+/**
+* Quadratic ease out function
+*/
+class QuadEaseOut{
+
+  float start = 0, change = 0;
+  int frame = 0;
+  int totalFrames = 0;
+  boolean done = false;
+
+  QuadEaseOut(float _start, float _end, int _frames) {
+    start = _start;
+    change = _end - _start;
+    totalFrames = _frames;
+  }
+
+  float valueAtNextFrame() {
+    return valueAtFrame(1);
+  }
+
+  float valueAtCurrentFrame() {
+    return valueAtFrame(0);
+  }
+
+  float valueAtFrame(int frameDiff) {
+    float progress = (frame + frameDiff) / totalFrames;
+    if (progress >= 1) {
+      return start + change;
+    }
+    return -change * progress*(progress - 2) + start;
+  }
+
+  float goToNextFrame() {
+    float value = valueAtFrame(0);
+    frame++;
+    return value;
   }
 }
 
